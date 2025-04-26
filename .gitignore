@@ -1,0 +1,49 @@
+ECHO is on.
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.venv/
+
+# # Jupyter Notebook checkpoints
+# .ipynb_checkpoints/
+
+# Dataset and large files
+data/
+*.h5
+*.pt
+*.pkl
+*.ckpt
+
+# Logs
+*.log
+logs/
+
+# Output files
+output/
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+
+# Results and experiments
+experiments/results/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment and IDE files
+.vscode/
+.idea/
+*.swp
+
+# Misc
+*.bak
+*.tmp
+*.old
