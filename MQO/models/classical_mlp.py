@@ -11,7 +11,7 @@ class MLP(torch.nn.Module):
         # Layers
         self.fc1  = torch.nn.Linear(input_size, hidden_sizes[0])
         self.fc2  = torch.nn.Linear(hidden_sizes[0], hidden_sizes[1])
-        self.fc3  = torch.nn.Linear(hidden_sizes[1], num_classes[0])
+        self.fc3  = torch.nn.Linear(hidden_sizes[1], num_classes)
         self.relu = torch.nn.ReLU()
 
     def forward(self, x):
