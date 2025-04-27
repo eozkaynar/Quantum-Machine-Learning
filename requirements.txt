@@ -8,3 +8,4 @@ pennylane-qiskit==0.32.0
 qiskit==0.44.1
 pandas==2.0.3
 seaborn==0.12.2
+Click==8.1.3
