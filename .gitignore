@@ -47,3 +47,6 @@ Thumbs.db
 *.bak
 *.tmp
 *.old
+
+# Python package metadata
+*.egg-info/
