@@ -1,5 +1,6 @@
-import math
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 import click
 import time
 import torch
@@ -14,7 +15,7 @@ from MQO.dataset.mnist_dataset  import MNISTDataset
 from MQO.models.classical_mlp   import MLP
 
 @click.command("classical")
-@click.option("--data_dir", type=click.Path(exists=True, file_okay=False), default="data")
+@click.option("--data_dir", type=click.Path(exists=True, file_okay=False), default="MQO/data")
 @click.option("--output", type=click.Path(file_okay=False), default="output/classical")
 # @click.option("--hyperparameter_dir", type=click.Path(file_okay=False), default="hyperparam_outputs")
 @click.option("--run_test/--skip_test", default=True)
@@ -72,9 +73,16 @@ def run(
     dataset     = {}  
     # Load datasets
     dataset["train"]   = MNISTDataset(data_dir=data_dir, split="train")
-    dataset["val"]     = MNISTDataset(data_dir=data_dir, split="val")
     dataset["test"]    = MNISTDataset(data_dir=data_dir, split="test")
 
+    # Start training time
+    training_start_time = time.time()
+
+    # Number of model parameters
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Total trainable parameters: {total_params}")
+    with open(os.path.join(output, "summary.txt"), "w") as summary_file:
+        summary_file.write(f"Trainable Parameters: {total_params}\n")
 
     log_file_path = os.path.join(output, "log.csv")
     # Run training and testing loops
@@ -82,15 +90,14 @@ def run(
         
         f.write("epoch,phase,epoch_loss,epoch_acc,time\n")
         train_losses    = []
-        val_losses      = []
 
         for epoch in range(num_epochs): 
             print("Epoch #{}".format(epoch), flush=True)
-            for phase in ['train', 'val']:
+            for phase in ['train']:
                 start_time = time.time()
                 ds                             = dataset[phase]
                 dataloader                     = DataLoader(ds, batch_size=batch_size, shuffle=(phase=="train"), num_workers=num_workers)
-                epoch_loss, epoch_acc, yhat, y = run_epoch(model, dataloader, phase, optimizer, criterion, device,train_losses,val_losses)
+                epoch_loss, epoch_acc, yhat, y = run_epoch(model, dataloader, phase, optimizer, criterion, device,train_losses)
                 
                 f.write("{},{},{},{},{}\n".format(
                                                 epoch,
@@ -100,14 +107,17 @@ def run(
                                                 time.time() - start_time))
                 f.flush()
             # scheduler.step(epoch + 1)
-
+        total_training_time = time.time() - training_start_time
+        print(f"Total Training Time: {total_training_time:.2f} seconds")
+        with open(os.path.join(output, "summary.txt"), "a") as summary_file:
+            summary_file.write(f"Total Training Time: {total_training_time:.2f} seconds\n")
         if run_test:
             split = "test"
             ds     = dataset[split]
             
             dataloader                     = DataLoader(MNISTDataset(data_dir=data_dir, split=split),batch_size=batch_size, 
                                                  shuffle=False, num_workers=num_workers)
-            epoch_loss, epoch_acc, yhat, y = run_epoch(model, dataloader, split, optimizer, criterion, device,train_losses=[],val_losses=[])
+            epoch_loss, epoch_acc, yhat, y = run_epoch(model, dataloader, split, optimizer, criterion, device,train_losses=[])
             # Write full performance to file
             with open(os.path.join(output, "{}_predictions.csv".format(split)), "w") as g:
                 g.write("true_value,prediction\n")
@@ -122,10 +132,9 @@ def run(
 
     
     np.save(os.path.join(output, "train_losses.npy"), np.array(train_losses))
-    np.save(os.path.join(output, "val_losses.npy"), np.array(val_losses))
     print(f"Train and validation losses saved to {output}")
 
-def run_epoch(model, dataloader, phase, optimizer,criterion, device,train_losses, val_losses):
+def run_epoch(model, dataloader, phase, optimizer,criterion, device,train_losses):
     """Run one epoch of training/evaluation for classification task (MNIST)."""
 
     if phase == "train":
@@ -162,7 +171,7 @@ def run_epoch(model, dataloader, phase, optimizer,criterion, device,train_losses
                 running_loss  += loss.item()
                 n             += images.size(0)
                 correct       += (preds == labels).sum().item() 
-                pbar.set_postfix_str("{:.2f} ({:.2f}) / {:.2f}".format(running_loss / n, loss.item()))
+                pbar.set_postfix_str("{:.2f} ({:.2f}) / {:.2f}%".format(running_loss / n, loss.item(), 100 * correct / n))
                 pbar.update(1)
 
     epoch_loss = running_loss / n
@@ -170,11 +179,7 @@ def run_epoch(model, dataloader, phase, optimizer,criterion, device,train_losses
 
     if (phase== "train"):
         train_losses.append(epoch_loss)
-    elif phase== "val":
-        val_losses.append(epoch_loss)
-    else:
-        pass
-                   
+                      
     yhat    = np.concatenate(yhat)
     y       = np.concatenate(y)
 
