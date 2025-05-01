@@ -17,7 +17,7 @@ class MNISTDataset(torch.utils.data.Dataset):
             transform (callable, optional): Transformation to apply to the images.
         """
         self.data_dir            = data_dir
-        self.split               = split
+        self.split               = split.lower()
         self.transform           = transform
         self.images, self.labels = self.read_images_labels(data_dir)
     
