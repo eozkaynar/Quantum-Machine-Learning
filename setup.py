@@ -16,5 +16,6 @@ setup(
         "pandas==2.0.3",
         "seaborn==0.12.2",
         "Click==8.1.3",
+        "tqdm==4.66.1"
     ],
 )
