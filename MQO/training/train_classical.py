@@ -4,6 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 import click
 import time
 import torch
+import torchvision
 import sklearn.metrics
 import tqdm
 import pandas               as pd
@@ -42,11 +43,7 @@ def run(
     seed,
 ):
 
-    # os.makedirs(output, exist_ok=True)  # Ensure the base output directory exists
-    # if hyperparameter:
-    #     output = hyperparameter_dir
-    # output = os.path.join(output, f"lr_{lr}_wd_{weight_decay}_bs_{batch_size}_nh_{num_heads}_nl_{num_layers}_pd_{projection_dim}") if hyperparameter else output
-    # os.makedirs(output, exist_ok=True)
+    os.makedirs(output, exist_ok=True)  # Ensure the base output directory exists
 
     # Seed RNGs
     np.random.seed(seed)
@@ -65,15 +62,30 @@ def run(
     # Set up optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     criterion = torch.nn.CrossEntropyLoss()
-    # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2)
 
-    # Compute mean and std
+    # Load MNIST dataset without normalization (only convert to tensor)
+    transform = torchvision.transforms.ToTensor()
+    train_dataset = MNISTDataset(data_dir=data_dir, split="train",transform=transform)
+    train_loader = DataLoader(train_dataset, batch_size=60000, shuffle=False)
 
+    # Get the entire training batch
+    images, _ = next(iter(train_loader))  # shape: (60000, 1, 28, 28)
+
+    # Compute mean and standard deviation
+    mean = images.mean().item()
+    std = images.std().item()
+
+    print(f"Mean: {mean:.4f}, Std: {std:.4f}")
+
+    transform = torchvision.transforms.Compose([
+    torchvision.transforms.ToTensor(),
+    torchvision.transforms.Normalize((mean,), (std,))
+    ])
     # Set up datasets and dataloaders
     dataset     = {}  
     # Load datasets
-    dataset["train"]   = MNISTDataset(data_dir=data_dir, split="train")
-    dataset["test"]    = MNISTDataset(data_dir=data_dir, split="test")
+    dataset["train"]   = MNISTDataset(data_dir=data_dir, split="train",transform=transform)
+    dataset["test"]    = MNISTDataset(data_dir=data_dir, split="test",transform=transform)
 
     # Start training time
     training_start_time = time.time()
