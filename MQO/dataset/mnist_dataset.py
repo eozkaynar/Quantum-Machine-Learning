@@ -1,24 +1,37 @@
 import os
 import struct
 import torch
+import torchvision
 import pandas as pd
 import numpy  as np
 from array import array
 import matplotlib.pyplot as plt
+import torchvision.transforms.functional
 
 class MNISTDataset(torch.utils.data.Dataset):
-    def __init__(self,data_dir, split, transform=None):
-        """
-        Dataset class for loading the MNIST dataset.
+    """
+    Custom dataset for MNIST with support for quantum-specific preprocessing.
 
+    Features:
+    - Class filtering for binary/multiclass experiments.
+    - Downsampling to lower resolutions (e.g., 4x4, 8x8) for quantum input.
+    - Normalization to [0,1] gray scale.
+    """
+    def __init__(self,data_dir, split, selected_classes=None, downsample_size=None, transform=None):
+        """
         Args:
-            data_dir (str): Path to data.
-            split (str): train/test
-            transform (callable, optional): Transformation to apply to the images.
+            data_dir (str): Root directory containing MNIST files.
+            split (str): 'train' or 'test'.
+            selected_classes (list[int], optional): Only include samples with these labels.
+            downsample_size (tuple[int, int], optional): If set, images will be downsampled to this resolution (e.g., (4, 4)).
+            transform (callable, optional): Optional image transform (e.g., ToTensor, Normalize).
         """
         self.data_dir            = data_dir
         self.split               = split.lower()
+        self.selected_classes    = selected_classes
+        self.downsample_size     = downsample_size
         self.transform           = transform
+
         self.images, self.labels = self.read_images_labels(data_dir)
     
     def read_images_labels(self, data_dir):
@@ -32,6 +45,7 @@ class MNISTDataset(torch.utils.data.Dataset):
             images (list): List of 28x28 NumPy arrays representing the images.
             labels (list): List of labels.
         """
+        # Define file paths
         training_images_filepath    = os.path.join(data_dir, 'train-images-idx3-ubyte/train-images-idx3-ubyte')
         training_labels_filepath    = os.path.join(data_dir, 'train-labels-idx1-ubyte/train-labels-idx1-ubyte')
         test_images_filepath        = os.path.join(data_dir, 't10k-images-idx3-ubyte/t10k-images-idx3-ubyte')
@@ -77,7 +91,30 @@ class MNISTDataset(torch.utils.data.Dataset):
         labels = np.array(labels, dtype=np.int64)
 
         return images, labels
+    
+    def filter_selected_classes(self):
+        """Filters dataset to only include samples from selected_classes and remaps labels to 0..N."""
+        filtered_images = []
+        filtered_labels = []
+        for img, label in zip(self.images, self.labels):
+            if label in self.selected_classes:
+                filtered_images.append(img)
+                filtered_labels.append(self.selected_classes.index(label))  # re-label as 0, 1, ...
+        self.images = filtered_images
+        self.labels = np.array(filtered_labels, dtype=np.int64)
 
+    def downsample(self, image):
+        """
+        Applies center crop to 24x24 and downsamples using average pooling.
+        Args:
+            image (torch.Tensor): Input image tensor [1, H, W]
+        Returns:
+            torch.Tensor: Downsampled image
+        """
+        image = torchvision.transforms.functional.center_crop(image, output_size=[24, 24])
+        kernel = image.shape[-1] // self.downsample_size[0]
+        return torch.nn.functional.avg_pool2d(image, kernel_size=kernel)
+    
     def __len__(self):
         """Returns the total number of examples in the dataset."""
         return len(self.labels)
@@ -95,11 +132,15 @@ class MNISTDataset(torch.utils.data.Dataset):
         image = self.images[idx]
         label = self.labels[idx]
 
+
+
         if self.transform:
             image = self.transform(image)
 
-        label = torch.tensor(label, dtype=torch.long)
+        if self.downsample_size:
+            image = self.downsample(image)
 
+        label = torch.tensor(label, dtype=torch.long)
 
         return image, label
     def save_image(self, idx, save_path):
