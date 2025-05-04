@@ -22,9 +22,9 @@ from MQO.models.classical_mlp   import MLP
 @click.option("--run_test/--skip_test", default=True)
 # @click.option("--hyperparameter", type=bool, default=False)
 @click.option("--num_epochs", type=int, default=35)
-@click.option("--lr", type=float, default=1e-4)
+@click.option("--lr", type=float, default=1e-3)
 @click.option("--weight_decay", type=float, default=1e-4)
-@click.option("--num_workers", type=int, default=4)
+@click.option("--num_workers", type=int, default=0)
 @click.option("--batch_size", type=int, default=16)
 @click.option("--device", type=str, default="cuda")
 @click.option("--seed", type=int, default=0)
@@ -60,7 +60,7 @@ def run(
     model     = MLP(input_size=784, hidden_sizes=[128,64], num_classes=10)
     model     = model.to(device)
     # Set up optimizer
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr,weight_decay=weight_decay)
     criterion = torch.nn.CrossEntropyLoss()
 
     # Load MNIST dataset without normalization (only convert to tensor)
@@ -81,11 +81,12 @@ def run(
     torchvision.transforms.ToTensor(),
     torchvision.transforms.Normalize((mean,), (std,))
     ])
+
     # Set up datasets and dataloaders
     dataset     = {}  
     # Load datasets
     dataset["train"]   = MNISTDataset(data_dir=data_dir, split="train",transform=transform)
-    dataset["test"]    = MNISTDataset(data_dir=data_dir, split="test",transform=transform)
+    dataset["test"]    = MNISTDataset(data_dir=data_dir, split="test",transform=torchvision.transforms.ToTensor())
 
     # Start training time
     training_start_time = time.time()
