@@ -17,7 +17,7 @@ class MNISTDataset(torch.utils.data.Dataset):
     - Downsampling to lower resolutions (e.g., 4x4, 8x8) for quantum input.
     - Normalization to [0,1] gray scale.
     """
-    def __init__(self,data_dir, split, selected_classes=None, downsample_size=None, transform=None):
+    def __init__(self,data_dir, split, selected_classes=None, transform=None):
         """
         Args:
             data_dir (str): Root directory containing MNIST files.
@@ -29,7 +29,6 @@ class MNISTDataset(torch.utils.data.Dataset):
         self.data_dir            = data_dir
         self.split               = split.lower()
         self.selected_classes    = selected_classes
-        self.downsample_size     = downsample_size
         self.transform           = transform
 
         self.images, self.labels = self.read_images_labels(data_dir)
@@ -103,18 +102,6 @@ class MNISTDataset(torch.utils.data.Dataset):
         self.images = filtered_images
         self.labels = np.array(filtered_labels, dtype=np.int64)
 
-    def downsample(self, image):
-        """
-        Applies center crop to 24x24 and downsamples using average pooling.
-        Args:
-            image (torch.Tensor): Input image tensor [1, H, W]
-        Returns:
-            torch.Tensor: Downsampled image
-        """
-        image = torchvision.transforms.functional.center_crop(image, output_size=[24, 24])
-        kernel = image.shape[-1] // self.downsample_size[0]
-        return torch.nn.functional.avg_pool2d(image, kernel_size=kernel)
-    
     def __len__(self):
         """Returns the total number of examples in the dataset."""
         return len(self.labels)
@@ -133,12 +120,9 @@ class MNISTDataset(torch.utils.data.Dataset):
         label = self.labels[idx]
 
 
-
         if self.transform:
             image = self.transform(image)
 
-        if self.downsample_size:
-            image = self.downsample(image)
 
         label = torch.tensor(label, dtype=torch.long)
 
