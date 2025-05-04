@@ -6,6 +6,7 @@ import click
 import torch
 import numpy as np
 import sklearn.metrics
+from tqdm import tqdm 
 from torch.utils.data import DataLoader
 from MQO.dataset.mnist_dataset import MNISTDataset
 from MQO.models.quantum_mlp import QMLP  # QMLP modelinizin tanımlı olduğu dosya
@@ -58,7 +59,8 @@ def run_epoch(model, dataloader, optimizer, criterion, device, phase="train"):
     running_loss, correct, total = 0.0, 0, 0
 
     with torch.set_grad_enabled(phase == "train"):
-        for images, labels in dataloader:
+        pbar = tqdm(dataloader, desc=f"[{phase.capitalize()}]", leave=False)
+        for images, labels in pbar:
             images, labels = images.to(device).float(), labels.to(device)
             if phase == "train":
                 optimizer.zero_grad()
@@ -74,6 +76,8 @@ def run_epoch(model, dataloader, optimizer, criterion, device, phase="train"):
             correct += (preds == labels).sum().item()
             running_loss += loss.item() * images.size(0)
             total += labels.size(0)
+
+            pbar.set_postfix_str(f"Loss: {loss.item():.4f}")
 
     epoch_loss = running_loss / total
     epoch_acc = 100.0 * correct / total
