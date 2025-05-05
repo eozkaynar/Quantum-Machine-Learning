@@ -5,6 +5,7 @@ import time
 import click
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 import sklearn.metrics
 from tqdm import tqdm 
 from torch.utils.data import DataLoader
@@ -15,7 +16,7 @@ from MQO.models.quantum_mlp import QMLP  # QMLP modelinizin tanımlı olduğu do
 @click.option("--data_dir", type=click.Path(exists=True, file_okay=False), default="MQO/data")
 @click.option("--output", type=click.Path(file_okay=False), default="output/quantum")
 @click.option("--run_test/--skip_test", default=True)
-@click.option("--num_epochs", type=int, default=20)
+@click.option("--num_epochs", type=int, default=30)
 @click.option("--lr", type=float, default=0.001)
 @click.option("--weight_decay", type=float, default=1e-4)
 @click.option("--num_workers", type=int, default=2)
@@ -42,12 +43,26 @@ def run(data_dir, output, run_test, num_epochs, lr, weight_decay, num_workers, b
     optimizer   = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     criterion   = torch.nn.NLLLoss()
 
+    train_loss_list = []  # Eğitim kaybını burada tutacağız
+
     for epoch in range(num_epochs):
         print(f"\nEpoch {epoch + 1}/{num_epochs}")
         train_loader = DataLoader(dataset["train"], batch_size=batch_size, shuffle=True, num_workers=num_workers)
         train_loss, train_acc = run_epoch(model, train_loader, optimizer, criterion, device, phase="train")
+        train_loss_list.append(train_loss)  # Kaybı listeye ekle
 
         print(f"[Train] Loss: {train_loss:.4f}, Accuracy: {train_acc:.2f}%")
+
+    # Eğitim kaybı grafiğini çiz
+    plt.figure(figsize=(8, 5))
+    plt.plot(range(1, num_epochs + 1), train_loss_list, marker='o', label='Train Loss')
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Training Loss over Epochs")
+    plt.grid(True)
+    plt.legend()
+    plt.savefig(os.path.join(output, "train_loss_plot.png"))  # Grafik kaydedilir
+    plt.show()
 
     if run_test:
         test_loader = DataLoader(dataset["test"], batch_size=batch_size, shuffle=False, num_workers=num_workers)

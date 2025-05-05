@@ -48,7 +48,7 @@ class QMLP(torch.nn.Module):
     def __init__(self, n_classes=10):
         super().__init__()
         self.pool   = torch.nn.AvgPool2d(7)  # 28x28 → 4x4 → 16 features
-        self.qlayer = qml.qnn.TorchLayer(qnode, weight_shapes) 
+        self.qlayer = qml.qnn.TorchLayer(qnode, weight_shapes)
         self.fc1    = torch.nn.Linear(16,n_classes)
 
     def forward(self, x):
