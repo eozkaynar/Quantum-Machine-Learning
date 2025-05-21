@@ -1,17 +1,22 @@
 import torch
 import pennylane as qml
+from pennylane import compile
 
 # Quantum circuit definition
 n_qubits = 16
 
 # Define quantum device (without noise)
-dev = qml.device("default.qubit",wires=n_qubits) # Without noise
+# dev = qml.device("default.qubit",wires=n_qubits) # Without noise
+# CUDA for fast process 
+# dev = qml.device("lightning.gpu", wires=n_qubits, shots=None)   # A100 / RTX
+dev = qml.device("lightning.qubit", wires=n_qubits, shots=None)
+
 # dev = qml.device("qiskit.aer",wires=n_qubits,noise_model = noise_model) # With noise 
 
 # This decorator registers the function as a quantum node (QNode) using the given device.
 # It enables the function to define a quantum circuit that runs on the specified quantum simulator or hardware backend.
 # Register this function as a quantum circuit (QNode) on the defined device
-@qml.qnode(dev)
+@qml.qnode(dev, interface="torch", diff_method="adjoint")
 def qnode(inputs, **weights):
     # Layer 1: RX encoding + Rot gates
     for i in range(n_qubits):
@@ -35,7 +40,10 @@ def qnode(inputs, **weights):
 
     # Measurement: return Pauli-Z expectation values
     return [qml.expval(qml.PauliZ(i)) for i in range(n_qubits)]
-
+# Vectorized batches 
+# batched_qnode   = map_batch(qnode, "inputs")                # <<< DEĞİŞTİ
+# compiled_qnode  = qml.transforms.compile()(batched_qnode) 
+# compiled_qnode = compile(qnode) 
 # Weight shapes
 weight_shapes = {
     **{f"w0{str(i).zfill(2)}": 3 for i in range(n_qubits)},
@@ -52,9 +60,13 @@ class QMLP(torch.nn.Module):
         self.fc1    = torch.nn.Linear(16,n_classes)
 
     def forward(self, x):
-        b   = x.shape[0]
-        x   = self.pool(x).view(b, n_qubits)
-        x   = self.qlayer(x)
-        out = self.fc1(x)
-        out = torch.nn.functional.log_softmax(out, dim=1)
-        return out
+        b = x.size(0)
+        # GPU kısım
+        x = self.pool(x).view(b, n_qubits)
+        # CPU kısım
+        x_cpu = x.to("cpu")
+        q_out = self.qlayer(x_cpu)
+        # GPU kısım
+        q_out = q_out.to(x.device)
+        out   = self.fc1(q_out)
+        return torch.nn.functional.log_softmax(out, dim=1)

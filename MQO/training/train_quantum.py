@@ -29,7 +29,6 @@ def run(data_dir, output, run_test, num_epochs, lr, weight_decay, num_workers, b
     # Reproducibility
     torch.manual_seed(seed)
     np.random.seed(seed)
-    
     device = torch.device(device if torch.cuda.is_available() else "cpu")
     os.makedirs(output, exist_ok=True)
 
@@ -59,7 +58,7 @@ def run(data_dir, output, run_test, num_epochs, lr, weight_decay, num_workers, b
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.title("Training Loss over Epochs")
-    plt.grid(True)
+    plt.grid(True)  
     plt.legend()
     plt.savefig(os.path.join(output, "train_loss_plot.png"))  # Grafik kaydedilir
     plt.show()
