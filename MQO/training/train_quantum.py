@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import sklearn.metrics
 from tqdm import tqdm 
 from torch.utils.data import DataLoader
+from torchvision import transforms
 from MQO.dataset.mnist_dataset import MNISTDataset
 from MQO.models.quantum_mlp import QMLP  # QMLP modelinizin tanımlı olduğu dosya
 
@@ -31,11 +32,11 @@ def run(data_dir, output, run_test, num_epochs, lr, weight_decay, num_workers, b
     np.random.seed(seed)
     device = torch.device(device if torch.cuda.is_available() else "cpu")
     os.makedirs(output, exist_ok=True)
-
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
     # Load datasets
     dataset = {
-        "train": MNISTDataset(data_dir=data_dir, split="train"),
-        "test": MNISTDataset(data_dir=data_dir, split="test"),
+        "train": MNISTDataset(data_dir=data_dir, split="train",transform=transform),
+        "test": MNISTDataset(data_dir=data_dir, split="test",transform=transform),
     }
 
     model       = QMLP().to(device)

@@ -6,17 +6,17 @@ from pennylane import compile
 n_qubits = 16
 
 # Define quantum device (without noise)
-# dev = qml.device("default.qubit",wires=n_qubits) # Without noise
+dev = qml.device("default.qubit",wires=n_qubits) # Without noise
 # CUDA for fast process 
 # dev = qml.device("lightning.gpu", wires=n_qubits, shots=None)   # A100 / RTX
-dev = qml.device("lightning.qubit", wires=n_qubits, shots=None)
+# dev = qml.device("lightning.qubit", wires=n_qubits, shots=None)
 
 # dev = qml.device("qiskit.aer",wires=n_qubits,noise_model = noise_model) # With noise 
 
 # This decorator registers the function as a quantum node (QNode) using the given device.
 # It enables the function to define a quantum circuit that runs on the specified quantum simulator or hardware backend.
 # Register this function as a quantum circuit (QNode) on the defined device
-@qml.qnode(dev, interface="torch", diff_method="adjoint")
+@qml.qnode(dev)
 def qnode(inputs, **weights):
     # Layer 1: RX encoding + Rot gates
     for i in range(n_qubits):
