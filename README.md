@@ -11,7 +11,7 @@ In this study, we used the well-known MNIST dataset, which consists of 70,000 gr
 
                            
                              
-| ![](docs/mnist_keras.gif) 
+| ![](mnist_keras.gif) 
 
 This project builds on the QMLP architecture [1], with implementation adapted from the original repository chuchengc/QMLP.
 
