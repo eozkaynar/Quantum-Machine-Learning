@@ -1,4 +1,4 @@
-PHYS710 Term Project:<br/>ViViT for 3D classification
+PHYS710 Term Project:<br/>
 ------------------------------------------------------------------------------
 This study benchmarks both classical and quantum-aware optimization methods for training a hybrid quantum-classical neural network (QMLP) on the MNIST dataset. The model replaces the hidden layer of a classical multi-layer perceptron (MLP) with a variational quantum circuit (VQC), which is implemented using PennyLane and integrated with PyTorch. 
 In this analysis, classical optimizers such as Adam and stochastic gradient descent (SGD) are compared with gradient-free, quantum-aware methods like SPSA and COBYLA under near-term intermediate-scale quantum (NISQ) simulation settings. The results indicate that classical optimizers achieve higher accuracy and more stable convergence. In contrast, quantum-aware methods struggle with issues of instability and sensitivity.
